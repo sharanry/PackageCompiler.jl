@@ -549,7 +549,7 @@ function create_sysimg_from_object_file(object_files::Vector{String},
     # Prevent compiler from stripping all symbols from the shared lib.
     o_file_flags = Sys.isapple() ? `-Wl,-all_load $object_files` : `-Wl,--whole-archive $object_files -Wl,--no-whole-archive`
     extra = get_extra_linker_flags(version, compat_level, soname)
-    cmd = `$(bitflag()) $(march()) -shared -L$(julia_libdir()) -L$(julia_private_libdir()) -o $sysimage_path $o_file_flags $(Base.shell_split(ldlibs())) $extra`
+    cmd = `$(bitflag()) $(march()) -fvisibility=hidden -shared -L$(julia_libdir()) -L$(julia_private_libdir()) -o $sysimage_path $o_file_flags $(Base.shell_split(ldlibs())) $extra`
     run_compiler(cmd; cplusplus=true)
     return nothing
 end
@@ -580,7 +580,7 @@ function compile_c_init_julia(julia_init_c_file::String, sysimage_name::String)
     flags = Base.shell_split(cflags())
 
     o_init_file = splitext(julia_init_c_file)[1] * ".o"
-    cmd = `-c -O2 -DJULIAC_PROGRAM_LIBNAME=$(repr(sysimage_name)) $TLS_SYNTAX $(bitflag()) $flags $(march()) -o $o_init_file $julia_init_c_file`
+    cmd = `-c -O2 -fvisibility=hidden -DJULIAC_PROGRAM_LIBNAME=$(repr(sysimage_name)) $TLS_SYNTAX $(bitflag()) $flags $(march()) -o $o_init_file $julia_init_c_file`
     run_compiler(cmd)
     return o_init_file
 end
@@ -738,7 +738,7 @@ function create_executable_from_sysimg(exe_path::String,
     mkpath(dirname(exe_path))
     flags = Base.shell_split(join((cflags(), ldflags(), ldlibs()), " "))
     m = something(march(), ``)
-    cmd = `-DJULIA_MAIN=\"$julia_main\" $TLS_SYNTAX $(bitflag()) $m -o $(exe_path) $(c_driver_program) -O2 $(rpath_executable()) $flags`
+    cmd = `-DJULIA_MAIN=\"$julia_main\" -fvisibility=hidden $TLS_SYNTAX $(bitflag()) $m -o $(exe_path) $(c_driver_program) -O2 $(rpath_executable()) $flags`
     run_compiler(cmd)
     return nothing
 end
